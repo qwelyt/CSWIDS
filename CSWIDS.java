@@ -124,12 +124,17 @@ public class CSWIDS extends JFrame{
 
 			else if(ae.getSource() == bTest){
 				//int[] selectedAPs = apList.getSelectedIndices();
-				Object[] selectedAPs = apList.getSelectedValues();
-				log.append("APs: " + selectedAPs[0] + " and " + selectedAPs[1] + " being tested.\n");
+				//log.append("APs: " + selectedAPs[0] + " and " + selectedAPs[1] + " being tested.\n");
+				java.util.List<Object> selectedAPs = apList.getSelectedValuesList();
+				log.append("APs: " + selectedAPs.get(0) + " and " + selectedAPs.get(1) + " being tested.\n");
 			}
 			else if(ae.getSource() == bScan){
 				log.append("Scan for networks\n");
 				// Ploy method to get APs in the list.
+				
+				// The actual scan should probably be done here, or after the removing of old APs.
+
+				apData.removeAllElements(); // Clear the old list before populating it with new APs.
 				for(int i=0; i< 10; i++)
 					apData.addElement("ap"+i);
 			}
