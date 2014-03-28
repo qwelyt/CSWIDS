@@ -15,6 +15,8 @@ class MainWindow(Gtk.Window):
         self.ap_list()
         self.log_area()
 
+        self.add(self.vbox)
+
     def header_bar(self):
         print("header_bar called.")
 
@@ -38,7 +40,6 @@ class MainWindow(Gtk.Window):
             name = "AP"+ str(i)
             mac = "::"+ str(i)
             liststore.append([name, mac])
-            #self.liststore.append(["Name", "MAC"])
 
         treeview = Gtk.TreeView(model=liststore)
 
@@ -60,10 +61,10 @@ class MainWindow(Gtk.Window):
         textview = Gtk.TextView()
         textbuffer = textview.get_buffer()
         textbuffer.set_text("This is the log.")
-        textbuffer.set_editable(False)
+        #textbuffer.set_editable(False)
         scrolledwindow.add(textview)
 
 win = MainWindow()
-win.connect("delete-entry", Gtk.main_quit)
+win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()
