@@ -6,6 +6,7 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="CSWIDS - Client-Side Wireless Intrusion Detection System")
         self.set_border_width(6)
+
         
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.button_box = Gtk.Box(spacing=6)
@@ -13,6 +14,9 @@ class MainWindow(Gtk.Window):
 
         header = self.header_bar()
         self.set_titlebar(header)
+
+        self.liststore = Gtk.ListStore(str, str, str, str, str)
+        self.textview = Gtk.TextView()
 
         self.button_bar()
         self.ap_list()
@@ -41,24 +45,15 @@ class MainWindow(Gtk.Window):
         self.button_box.pack_start(button, True, True, 0)
 
         button = Gtk.Button(label="Scan")
-        #button.connect("clicked", scanFärNetworksFunction)
+        button.connect("clicked", self.scan_for_networks)
         self.button_box.pack_start(button, True,True, 0)
 
     def ap_list(self):
-        liststore = Gtk.ListStore(str, str, str, str, str)
 
-        # Populate list with dummy values for now.
-        for i in range(1,10):
-            name = "AP"+ str(i)
-            strength = i*10
-            encryption = "None"
-            mac = "::"+ str(i)
-            channel = str(i)
-            liststore.append([name, str(strength)+"%", encryption, mac, channel])
 
         # To list the APs as going from best signal to weakest, we need to sort it.
         # These two lines does that.
-        sorted_model = Gtk.TreeModelSort(model=liststore)
+        sorted_model = Gtk.TreeModelSort(model=self.liststore)
         sorted_model.set_sort_column_id(1, Gtk.SortType.DESCENDING)
 
         treeview = Gtk.TreeView(model=sorted_model)
@@ -66,8 +61,10 @@ class MainWindow(Gtk.Window):
         treeview.set_headers_clickable(True)
 
         treeview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
+        #treeview.get_selection().set_select_function()
         select = treeview.get_selection()
-        select.connect("changed", self.on_ap_selection_changed)
+        global ap_selection_signal
+        ap_selection_signal = select.connect("changed", self.on_ap_selection_changed)
 
         renderText = Gtk.CellRendererText()
         column_name = Gtk.TreeViewColumn("ESSID", renderText, text=0)
@@ -93,13 +90,27 @@ class MainWindow(Gtk.Window):
         scrolledwindow.set_vexpand(True)
         self.vbox.pack_start(scrolledwindow, True, True,6)
 
-        textview = Gtk.TextView()
-        textbuffer = textview.get_buffer()
-        textbuffer.set_text("This is the log.")
+        textbuffer = self.textview.get_buffer()
+        #textbuffer.set_text("This is the log.\n")
         #textbuffer.set_editable(False)
-        scrolledwindow.add(textview)
+        scrolledwindow.add(self.textview)
+
 
     def on_ap_selection_changed(self, selection):
+        liststores, listpaths = selection.get_selected_rows()
+        if len(listpaths) > 2:
+            for row in range(len(listpaths)):
+                if listpaths[row][0] is not row:
+                    selection.handler_block(ap_selection_signal)
+                    selection.unselect_path(listpaths[row])
+                    selection.handler_unblock(ap_selection_signal)
+
+        #for selected_row in range(len(listpaths)):
+        #    if listpaths[selected_row][0] == 1:
+        #        selection.handler_block(ap_selection_signal)
+        #        selection.unselect_path(listpaths[selected_row])
+        #        selection.handler_unblock(ap_selection_signal)
+        '''
         model, treeiter = selection.get_selected_rows()
         number = 0
         for x in treeiter:
@@ -112,7 +123,22 @@ class MainWindow(Gtk.Window):
 
         #if treeiter != None:
          #   print("You selected", model[treeiter][0])
+         '''
 
+    def scan_for_networks(self, widget):
+        textbuffer = self.textview.get_buffer()
+        textbuffer.insert(textbuffer.get_end_iter(), "Scan initiated\n")
+        # Clear the old values
+        self.liststore.clear()
+
+        # Populate list with dummy values for now.
+        for i in range(1,10):
+            name = "AP"+ str(i)
+            strength = i*10
+            encryption = "None"
+            mac = "::"+ str(i)
+            channel = str(i)
+            self.liststore.append([name, str(strength)+"%", encryption, mac, channel])
 
 win = MainWindow()
 win.connect("delete-event", Gtk.main_quit)
