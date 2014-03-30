@@ -7,7 +7,7 @@ class MainWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="CSWIDS - Client-Side Wireless Intrusion Detection System")
         self.set_border_width(6)
         #self.set_default_size(200, 400)
-
+        self.selected_items = []
         
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.button_box = Gtk.Box(spacing=6, homogeneous=True)
@@ -102,6 +102,12 @@ class MainWindow(Gtk.Window):
 
     def on_ap_selection_changed(self, selection):
         liststores, listpaths = selection.get_selected_rows()
+        self.selected_items.clear()
+        for x in listpaths:
+            a = liststores.get_iter(x)
+            value = liststores.get_value(a, 0)
+            self.selected_items.append(value)
+
         if len(listpaths) > 2:
             for row in range(len(listpaths)):
                 if listpaths[row][0] is not row:
@@ -147,8 +153,14 @@ class MainWindow(Gtk.Window):
         textbuffer.insert(textbuffer.get_end_iter(), " Done!\n")
 
     def test_selected_aps(self, widget):
+        #print(self.selected_items)
         textbuffer = self.textview.get_buffer()
-        textbuffer.insert(textbuffer.get_end_iter(), "Test on .... initiated\n")
+        if len(self.selected_items) == 2:
+            print_items = self.selected_items
+            #print(print_items.pop(0))
+            #print(print_items.pop(0))
+            textbuffer.insert(textbuffer.get_end_iter(), "Test on "+ print_items.pop(0) + " and " + print_items.pop(0) + ".\n")
+        
 
 win = MainWindow()
 win.connect("delete-event", Gtk.main_quit)
