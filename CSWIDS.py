@@ -6,11 +6,12 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="CSWIDS - Client-Side Wireless Intrusion Detection System")
         self.set_border_width(6)
+        #self.set_default_size(200, 400)
 
         
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        self.button_box = Gtk.Box(spacing=6)
-        self.vbox.pack_start(self.button_box, True, True, 6)
+        self.button_box = Gtk.Box(spacing=6, homogeneous=True)
+        self.vbox.pack_start(self.button_box, False, False, 6)
 
         header = self.header_bar()
         self.set_titlebar(header)
@@ -41,7 +42,7 @@ class MainWindow(Gtk.Window):
         self.button_box.pack_start(button, True, True, 0)
 
         button = Gtk.Button(label="Test")
-        #button.connect("clicked", doTheTestsFunktion)
+        button.connect("clicked", self.test_selected_aps)
         self.button_box.pack_start(button, True, True, 0)
 
         button = Gtk.Button(label="Scan")
@@ -49,8 +50,6 @@ class MainWindow(Gtk.Window):
         self.button_box.pack_start(button, True,True, 0)
 
     def ap_list(self):
-
-
         # To list the APs as going from best signal to weakest, we need to sort it.
         # These two lines does that.
         sorted_model = Gtk.TreeModelSort(model=self.liststore)
@@ -82,6 +81,11 @@ class MainWindow(Gtk.Window):
         column_chan = Gtk.TreeViewColumn("Channel", renderText, text=4)
         treeview.append_column(column_chan)
 
+        #list_size = Gtk.Adjustment(lower=10, page_size=100)
+        #scrolledwindow = Gtk.ScrolledWindow(list_size)
+        #scrolledwindow.add(treeview)
+
+        #self.vbox.pack_start(scrolledwindow, True, True, 0)
         self.vbox.pack_start(treeview, True, True, 0)
 
     def log_area(self):
@@ -91,8 +95,8 @@ class MainWindow(Gtk.Window):
         self.vbox.pack_start(scrolledwindow, True, True,6)
 
         textbuffer = self.textview.get_buffer()
-        #textbuffer.set_text("This is the log.\n")
-        #textbuffer.set_editable(False)
+        self.textview.set_editable(False) # Disable user editing the log
+        self.textview.set_cursor_visible(False) # Remove cursor from log
         scrolledwindow.add(self.textview)
 
 
@@ -127,7 +131,7 @@ class MainWindow(Gtk.Window):
 
     def scan_for_networks(self, widget):
         textbuffer = self.textview.get_buffer()
-        textbuffer.insert(textbuffer.get_end_iter(), "Scan initiated\n")
+        textbuffer.insert(textbuffer.get_end_iter(), "Scan initiated...")
         # Clear the old values
         self.liststore.clear()
 
@@ -136,9 +140,15 @@ class MainWindow(Gtk.Window):
             name = "AP"+ str(i)
             strength = i*10
             encryption = "None"
-            mac = "::"+ str(i)
+            mac = "bc:5f:c3:96:71:a"+ str(i)
             channel = str(i)
             self.liststore.append([name, str(strength)+"%", encryption, mac, channel])
+
+        textbuffer.insert(textbuffer.get_end_iter(), " Done!\n")
+
+    def test_selected_aps(self, widget):
+        textbuffer = self.textview.get_buffer()
+        textbuffer.insert(textbuffer.get_end_iter(), "Test on .... initiated\n")
 
 win = MainWindow()
 win.connect("delete-event", Gtk.main_quit)
