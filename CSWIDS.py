@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 from gi.repository import Gtk
+import sys
+import socket
 
 class MainWindow(Gtk.Window):
     def __init__(self):
@@ -8,6 +10,10 @@ class MainWindow(Gtk.Window):
         self.set_border_width(6)
         #self.set_default_size(200, 400)
         self.selected_items = []
+        self.os = sys.platform # Check what OS we are on
+        self.interfaces = socket.if_nameindex() # List available  network interfaces
+        self.selected_interface = None
+
         
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.button_box = Gtk.Box(spacing=6, homogeneous=True)
@@ -37,9 +43,19 @@ class MainWindow(Gtk.Window):
 
 
     def button_bar(self):
-        button = Gtk.Button(label="Quit")
-        button.connect("clicked", Gtk.main_quit)
-        self.button_box.pack_start(button, True, True, 0)
+        #button = Gtk.Button(label="Quit")
+        #button.connect("clicked", Gtk.main_quit)
+        #self.button_box.pack_start(button, True, True, 0)
+
+        interface_list = Gtk.ListStore(int, str)
+        for interface in list(self.interfaces):
+            interface_list.append(interface)
+        combo_box = Gtk.ComboBox.new_with_model(interface_list)
+        combo_box.connect("changed", self.selected_interface_changed)
+        render_text = Gtk.CellRendererText()
+        combo_box.pack_start(render_text, True)
+        combo_box.add_attribute(render_text, "text", 1)
+        self.button_box.pack_start(combo_box, True, True, 0)
 
         button = Gtk.Button(label="Test")
         button.connect("clicked", self.test_selected_aps)
@@ -99,6 +115,15 @@ class MainWindow(Gtk.Window):
         self.textview.set_cursor_visible(False) # Remove cursor from log
         scrolledwindow.add(self.textview)
 
+    def selected_interface_changed(self, selection):
+        tree_iter = selection.get_active_iter()
+        if tree_iter != None:
+            model = selection.get_model()
+            self.selected_interface = model[tree_iter][1]
+        
+        print(self.selected_interface)
+        
+
 
     def on_ap_selection_changed(self, selection):
         liststores, listpaths = selection.get_selected_rows()
@@ -137,20 +162,30 @@ class MainWindow(Gtk.Window):
 
     def scan_for_networks(self, widget):
         textbuffer = self.textview.get_buffer()
-        textbuffer.insert(textbuffer.get_end_iter(), "Scan initiated...")
-        # Clear the old values
-        self.liststore.clear()
+        if self.selected_interface != None:
+            textbuffer.insert(textbuffer.get_end_iter(), "Scan initiated...")
+            # Clear the old values
+            self.liststore.clear()
+            
 
-        # Populate list with dummy values for now.
-        for i in range(1,10):
-            name = "AP"+ str(i)
-            strength = i*10
-            encryption = "None"
-            mac = "bc:5f:c3:96:71:a"+ str(i)
-            channel = str(i)
-            self.liststore.append([name, str(strength)+"%", encryption, mac, channel])
+            if self.os == "linux":
+                print("LIIIIINUUUUX!!!")
+                #from . 
+                import wifi_scan_linux
+                # Here is where the actuall scan should occur
+            # Populate list with dummy values for now.
+            #for i in range(1,10):
+            #    name = "AP"+ str(i)
+            #    strength = i*10
+            #    encryption = "None"
+            #    mac = "bc:5f:c3:96:71:a"+ str(i)
+            #    channel = str(i)
+            #    self.liststore.append([name, str(strength)+"%", encryption, mac, channel])
 
-        textbuffer.insert(textbuffer.get_end_iter(), " Done!\n")
+            textbuffer.insert(textbuffer.get_end_iter(), " Done!\n")
+
+        else:
+            textbuffer.insert(textbuffer.get_end_iter(), "No interface selected.\n")
 
     def test_selected_aps(self, widget):
         #print(self.selected_items)
