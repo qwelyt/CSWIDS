@@ -1,6 +1,6 @@
 from wifi import Cell
 
-def wifi_scan_linux(interface):
+def scan_linux(interface):
     access_points = Cell.all(interface)
 
     return access_points

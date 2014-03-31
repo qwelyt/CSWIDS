@@ -164,15 +164,25 @@ class MainWindow(Gtk.Window):
         textbuffer = self.textview.get_buffer()
         if self.selected_interface != None:
             textbuffer.insert(textbuffer.get_end_iter(), "Scan initiated...")
+
             # Clear the old values
             self.liststore.clear()
             
 
             if self.os == "linux":
-                print("LIIIIINUUUUX!!!")
+                #print("LIIIIINUUUUX!!!")
                 #from . 
                 import wifi_scan_linux
                 # Here is where the actuall scan should occur
+                found_aps = wifi_scan_linux.scan_linux(self.selected_interface)
+                print(list(found_aps))
+                #print(found_aps["Aperature"])
+                print(type(found_aps))
+                print(type(found_aps))
+
+
+
+
             # Populate list with dummy values for now.
             #for i in range(1,10):
             #    name = "AP"+ str(i)
