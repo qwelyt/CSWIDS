@@ -3,3 +3,4 @@
 *.swo
 *.sw*
 *.class
+__pycache__/

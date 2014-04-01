@@ -175,10 +175,32 @@ class MainWindow(Gtk.Window):
                 import wifi_scan_linux
                 # Here is where the actuall scan should occur
                 found_aps = wifi_scan_linux.scan_linux(self.selected_interface)
-                print(list(found_aps))
-                #print(found_aps["Aperature"])
-                print(type(found_aps))
-                print(type(found_aps))
+                #print(list(found_aps))
+                for a in found_aps:
+                    ssid = a.ssid
+                    signal = a.signal
+                    freq = a.frequency
+                    bitrate = a.bitrates
+                    if a.encrypted:
+                        enc = a.encryption_type
+                    else:
+                        enc = 'Unsecure'
+
+                    chan = a.channel
+                    addr = a.address
+                    mode = a.mode
+                    #print(ssid + " "+ freq + " "+ bitrate+" "+ enc+" "+chan+" "+addr+" "+addr+" "+mode)
+                    #print(ssid)
+                    #print(signal)
+                    #print(freq)
+                    #print(bitrate)
+                    #print(enc)
+                    #print(chan)
+                    #print(addr)
+                    #print(mode)
+                    #print("\n")
+                    strength=signal
+                    self.liststore.append([ssid, str(strength)+"%", enc, addr, str(chan)])
 
 
 
