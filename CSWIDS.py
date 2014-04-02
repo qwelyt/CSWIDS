@@ -22,7 +22,10 @@ class MainWindow(Gtk.Window):
         header = self.header_bar()
         self.set_titlebar(header)
 
-        self.liststore = Gtk.ListStore(str, str, str, str, str)
+        # SSID, Strength, Encryption, MAC, channel, frequency, (list)bitrate, mode
+        # 8 strs for the liststore. The  bitrate attribute for networks is a list, so show it in a combobox.
+        self.liststore = Gtk.ListStore(str, int, str, str, str, str, str, str)
+        self.liststore_bitrates = Gtk.ListStore(str)
         self.textview = Gtk.TextView()
 
         self.button_bar()
@@ -81,7 +84,9 @@ class MainWindow(Gtk.Window):
         global ap_selection_signal
         ap_selection_signal = select.connect("changed", self.on_ap_selection_changed)
 
+        # SSID, Strength, Encryption, MAC, channel, frequency, (list)bitrate, mode
         renderText = Gtk.CellRendererText()
+
         column_name = Gtk.TreeViewColumn("ESSID", renderText, text=0)
         treeview.append_column(column_name)
 
@@ -96,6 +101,20 @@ class MainWindow(Gtk.Window):
 
         column_chan = Gtk.TreeViewColumn("Channel", renderText, text=4)
         treeview.append_column(column_chan)
+
+        column_freq = Gtk.TreeViewColumn("Frequency", renderText, text=5)
+        treeview.append_column(column_freq)
+
+        renderCombo = Gtk.CellRendererCombo()
+        renderCombo.set_property("editable", True)
+        renderCombo.set_property("model", self.liststore_bitrates)
+        renderCombo.set_property("text-column", 0)
+        renderCombo.set_property("has-entry", False)
+        column_bit = Gtk.TreeViewColumn("Bitrates", renderCombo, text=6)
+        treeview.append_column(column_bit)
+
+        column_mode = Gtk.TreeViewColumn("Mode", renderText, text=7)
+        treeview.append_column(column_mode)
 
         #list_size = Gtk.Adjustment(lower=10, page_size=100)
         #scrolledwindow = Gtk.ScrolledWindow(list_size)
@@ -169,6 +188,7 @@ class MainWindow(Gtk.Window):
             self.liststore.clear()
             
 
+            # SSID, Strength, Encryption, MAC, channel, frequency, (list)bitrate, mode
             if self.os == "linux":
                 #print("LIIIIINUUUUX!!!")
                 #from . 
@@ -177,6 +197,7 @@ class MainWindow(Gtk.Window):
                 found_aps = wifi_scan_linux.scan_linux(self.selected_interface)
                 #print(list(found_aps))
                 for a in found_aps:
+                    self.liststore_bitrates.clear()
                     ssid = a.ssid
                     signal = a.signal
                     freq = a.frequency
@@ -189,7 +210,6 @@ class MainWindow(Gtk.Window):
                     chan = a.channel
                     addr = a.address
                     mode = a.mode
-                    #print(ssid + " "+ freq + " "+ bitrate+" "+ enc+" "+chan+" "+addr+" "+addr+" "+mode)
                     #print(ssid)
                     #print(signal)
                     #print(freq)
@@ -199,8 +219,20 @@ class MainWindow(Gtk.Window):
                     #print(addr)
                     #print(mode)
                     #print("\n")
-                    strength=signal
-                    self.liststore.append([ssid, str(strength)+"%", enc, addr, str(chan)])
+                    # Signal strength conversion: From dBm (range -100 to -50) to percentage (range 0 to 100)
+                    # quality = 2*(dBm + 100)
+                    if signal <= -100:
+                        strength = 100
+                    elif signal >= -50:
+                        strength = 0
+                    else:
+                        strength=2*(signal+100)
+                    strength=2*(signal+100)
+                    for rate in bitrate:
+                        self.liststore_bitrates.append([rate])
+                        #print(rate)
+                    #print("SSID "+ssid + " Strength: "+str(strength)+"% Frequency:"+ str(freq) + " Bitrate:"+ str(bitrate)+" Encryption: "+ str(enc)+" Channel: "+str(chan)+" MAC: "+addr+" Mode: "+mode)
+                    self.liststore.append([ssid, strength, enc, addr, str(chan), freq, "See bitrate", mode])
 
 
 
