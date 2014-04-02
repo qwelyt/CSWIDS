@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 from gi.repository import Gtk
 import sys
@@ -13,6 +14,7 @@ class MainWindow(Gtk.Window):
         self.os = sys.platform # Check what OS we are on
         self.interfaces = socket.if_nameindex() # List available  network interfaces
         self.selected_interface = None
+        self.found_access_points = None
 
         
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -194,11 +196,12 @@ class MainWindow(Gtk.Window):
                 #from . 
                 import wifi_scan_linux
                 # Here is where the actuall scan should occur
-                found_aps = wifi_scan_linux.scan_linux(self.selected_interface)
+                self.found_access_points = wifi_scan_linux.scan_linux(self.selected_interface)
+                found_aps = self.found_access_points
                 #print(list(found_aps))
                 for a in found_aps:
                     self.liststore_bitrates.clear()
-                    ssid = a.ssid
+                    ssid = a.ssid.encode('utf-8').decode('utf-8')
                     signal = a.signal
                     freq = a.frequency
                     bitrate = a.bitrates
@@ -256,9 +259,14 @@ class MainWindow(Gtk.Window):
         textbuffer = self.textview.get_buffer()
         if len(self.selected_items) == 2:
             print_items = self.selected_items
+            ap1 = print_items.pop(0)
+            ap2 = print_items.pop(0)
             #print(print_items.pop(0))
             #print(print_items.pop(0))
-            textbuffer.insert(textbuffer.get_end_iter(), "Test on "+ print_items.pop(0) + " and " + print_items.pop(0) + ".\n")
+            textbuffer.insert(textbuffer.get_end_iter(), "Test on "+ ap1 + " and " + ap2 + ".\n")
+            if self.os == "linux":
+                import connect_linux
+                connect_linux.connect(self.selected_interface, self.found_access_points, ap1)
         
 
 win = MainWindow()
