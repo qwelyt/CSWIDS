@@ -194,14 +194,29 @@ class MainWindow(Gtk.Window):
             if self.os == "linux":
                 #print("LIIIIINUUUUX!!!")
                 #from . 
-                import wifi_scan_linux
+                from wifi_scan_linux import wifi_scan_linux
                 # Here is where the actuall scan should occur
-                self.found_access_points = wifi_scan_linux.scan_linux(self.selected_interface)
+                self.found_access_points = wifi_scan_linux.scan(self.selected_interface)
                 found_aps = self.found_access_points
-                #print(list(found_aps))
+                #print(found_aps)
                 for a in found_aps:
-                    self.liststore_bitrates.clear()
-                    ssid = a.ssid.encode('utf-8').decode('utf-8')
+                    essid = a['essid']
+                    bssid = a['bssid']
+                    encryption = str(a['encryption'])
+                    mode = a['mode']
+                    freq = a['freq']
+                    signal = int(a['signal'])
+                    chan = str(a['channel'])
+                    bitrates = str(a['bitrates'])
+                    if signal <= -100:
+                        strength = 100
+                    elif signal >= -50:
+                        strength = 0
+                    else:
+                        strength=2*(signal+100)
+
+                    self.liststore.append([essid, strength, encryption, bssid, chan, freq, bitrates, mode])
+                '''  ssid = a.ssid.encode('utf-8').decode('utf-8')
                     signal = a.signal
                     freq = a.frequency
                     bitrate = a.bitrates
@@ -213,15 +228,6 @@ class MainWindow(Gtk.Window):
                     chan = a.channel
                     addr = a.address
                     mode = a.mode
-                    #print(ssid)
-                    #print(signal)
-                    #print(freq)
-                    #print(bitrate)
-                    #print(enc)
-                    #print(chan)
-                    #print(addr)
-                    #print(mode)
-                    #print("\n")
                     # Signal strength conversion: From dBm (range -100 to -50) to percentage (range 0 to 100)
                     # quality = 2*(dBm + 100)
                     if signal <= -100:
@@ -236,6 +242,7 @@ class MainWindow(Gtk.Window):
                         #print(rate)
                     #print("SSID "+ssid + " Strength: "+str(strength)+"% Frequency:"+ str(freq) + " Bitrate:"+ str(bitrate)+" Encryption: "+ str(enc)+" Channel: "+str(chan)+" MAC: "+addr+" Mode: "+mode)
                     self.liststore.append([ssid, strength, enc, addr, str(chan), freq, "See bitrate", mode])
+                    '''
 
 
 
