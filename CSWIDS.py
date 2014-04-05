@@ -117,13 +117,16 @@ class MainWindow(Gtk.Window):
 
         column_mode = Gtk.TreeViewColumn("Mode", renderText, text=7)
         treeview.append_column(column_mode)
+        treeview.set_size_request(400,200)
 
         #list_size = Gtk.Adjustment(lower=10, page_size=100)
-        #scrolledwindow = Gtk.ScrolledWindow(list_size)
-        #scrolledwindow.add(treeview)
+        scrolledwindow = Gtk.ScrolledWindow()
+        scrolledwindow.add(treeview)
+        scrolledwindow.set_min_content_width(1000)
+        scrolledwindow.set_min_content_height(400)
 
-        #self.vbox.pack_start(scrolledwindow, True, True, 0)
-        self.vbox.pack_start(treeview, True, True, 0)
+        self.vbox.pack_start(scrolledwindow, True, True, 0)
+        #self.vbox.pack_start(treeview, True, True, 0)
 
     def log_area(self):
         scrolledwindow = Gtk.ScrolledWindow()
@@ -205,17 +208,26 @@ class MainWindow(Gtk.Window):
                     encryption = str(a['encryption'])
                     mode = a['mode']
                     freq = a['freq']
-                    signal = int(a['signal'])
+                    quality = a['quality']
+                    signal = a['signal']
                     chan = str(a['channel'])
-                    bitrates = str(a['bitrates'])
-                    if signal <= -100:
-                        strength = 100
-                    elif signal >= -50:
-                        strength = 0
-                    else:
-                        strength=2*(signal+100)
+                    bitrates = a['bitrates']
+                    rates = ""
+                    i = 0
+                    for rate in bitrates:
+                        i += 1
+                        rates = rates + rate + ", "
+                        if i % 4 == 0:
+                            rates = rates +"\n"
 
-                    self.liststore.append([essid, strength, encryption, bssid, chan, freq, bitrates, mode])
+                    if rates[-1] == "\n":
+                        rates = rates[:-2]
+
+                    #strength=float(signal)
+                    qual = quality.split("/")
+                    strength = float(float(qual[0])/float(qual[1]))*100
+
+                    self.liststore.append([essid, strength, encryption, bssid, chan, freq, rates, mode])
                 '''  ssid = a.ssid.encode('utf-8').decode('utf-8')
                     signal = a.signal
                     freq = a.frequency
@@ -272,8 +284,10 @@ class MainWindow(Gtk.Window):
             #print(print_items.pop(0))
             textbuffer.insert(textbuffer.get_end_iter(), "Test on "+ ap1 + " and " + ap2 + ".\n")
             if self.os == "linux":
-                import connect_linux
-                connect_linux.connect(self.selected_interface, self.found_access_points, ap1)
+                from wifi_scan_linux import wifi_scan_linux
+                result = wifi_scan_linux.test_ap_linux(self.selected_interface, ap1, ap2)
+
+            textbuffer.insert(textbuffer.get_end_iter(), result +"\n")
         
 
 win = MainWindow()
