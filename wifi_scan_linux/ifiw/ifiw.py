@@ -1,6 +1,7 @@
 import os
 import re
 import socket
+from time import sleep
 from subprocess import Popen, PIPE, STDOUT
 
 from wifi_scan_linux.ifiw import misc
@@ -20,6 +21,9 @@ altwpa_pattern = re.compile('(wpa_ie)', _re_mode)
 wpa2_pattern = re.compile('(WPA2)', _re_mode)
 signaldbm_pattern = re.compile('.*Signal level:?=? ?(-\d\d*)', _re_mode)
 quality_pattern = re.compile('.*Quality:?=? ?(\d+/?\d+)\s+', _re_mode)
+
+inet_pattern = re.compile('inet (\d*.\d*.\d*.\d*).', _re_mode)
+netmask_pattern = re.compile('netmask (\d*.\d*.\d*.\d*).', _re_mode)
 
 altstrength_pattern = re.compile('.*Signal level:?=? ?(\d+)\s*/?\s*(\d*)', _re_mode)
 strength_pattern = re.compile('.*Quality:?=? ?(\d+)\s*/?\s*(\d*)', _re_mode)
@@ -157,7 +161,9 @@ class ifiw():
         return access_points.values()
 
 
-    def connect_essid(interface, essid, dhcp):
+    # dhcpcd is giving some seriouse problems with the connecting, makitg the whole program fail.
+    # Not sure have to solve it all... Sometimes it works, sometimes not. It's like russian roulette.
+    def connect_essid(interface, essid, dhcp, restart=False, kill=False):
         ''' Connects to a network
             interface -- The interface to use
             essid -- The network
@@ -172,22 +178,67 @@ class ifiw():
         if dhcp == 'dhclient':
             dhcp_cmd = 'dhclient %s' % interface
         elif dhcp == 'dhcpcd':
-            dhcp_cmd = 'dhcpcd %s' % interface
+            if restart:
+                dhcp_cmd = 'dhcpcd -nK -t 0 --noipv4ll %s' % interface
+            else:
+                dhcp_cmd = 'dhcpcd -K -t 0 --noipv4ll %s ' % interface
+            if kill:
+                dhcp_kill = 'dhcpcd -k -x %s' % interface
+            else:
+                dhcp_kill = ""
         else:
             dhcp_cmd = ""
 
 
 
-        # Bring the interface down first, so we disconnect any existing connection
+        # Bring the interface down first, so we disconnect any existing connection.
+        os.popen(dhcp_kill)
         down = 'ifconfig %s down' % interface
         up = 'ifconfig %s up' % interface
         os.popen(down)
         os.popen(up)
 
 
+
         net = 'iwconfig ' + interface + ' essid "' + essid +'"'
+        #print(net)
         os.popen(net)
         os.popen(dhcp_cmd)
+
+        inet = ""
+        netmask = ""
+        inet_cmd = 'ifconfig ' + interface
+        while inet == "" or inet == None:
+            result = os.popen(inet_cmd)
+            lines = ""
+            for line in result: 
+                line = str(line)
+                lines = lines + line
+
+            #print(lines)
+            inet = misc.Regex(inet_pattern, lines)
+            netmask = misc.Regex(netmask_pattern, lines)
+            #print(net)
+            #print(str(inet) + " <-- inet, connecting to " + essid)
+            sleep(1)
+
+        results = []
+        if inet != "" or inet != None:
+            results.append(True)
+            results.append(netmask)
+            return results
+        else:
+            results.append(False)
+            results.append(netmask)
+            return results
+    def disconnect(interface, dhcp):
+        if dhcp == 'dhclient':
+            dhcp_cmd = ' %s' % interface
+        elif dhcp == 'dhcpcd':
+            dhcp_cmd = 'dhcpcd -x %s' % interface
+        else:
+            dhcp_cmd = ""
+
 
 
 

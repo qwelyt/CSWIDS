@@ -15,6 +15,8 @@ class MainWindow(Gtk.Window):
         self.interfaces = socket.if_nameindex() # List available  network interfaces
         self.selected_interface = None
         self.found_access_points = None
+        self.entry = Gtk.Entry()
+        self.entry.set_text("dsv.su.se")
 
         
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -62,13 +64,21 @@ class MainWindow(Gtk.Window):
         combo_box.add_attribute(render_text, "text", 1)
         self.button_box.pack_start(combo_box, True, True, 0)
 
-        button = Gtk.Button(label="Test")
-        button.connect("clicked", self.test_selected_aps)
-        self.button_box.pack_start(button, True, True, 0)
 
         button = Gtk.Button(label="Scan")
         button.connect("clicked", self.scan_for_networks)
         self.button_box.pack_start(button, True,True, 0)
+
+        sitebox = Gtk.Box()
+        label = Gtk.Label("Test site:")
+        sitebox.pack_start(label, True, True, 0)
+        sitebox.pack_start(self.entry, True, True, 0)
+        self.button_box.pack_start(sitebox, True, True, 0)
+
+
+        button = Gtk.Button(label="Test")
+        button.connect("clicked", self.test_selected_aps)
+        self.button_box.pack_start(button, True, True, 0)
 
     def ap_list(self):
         # To list the APs as going from best signal to weakest, we need to sort it.
@@ -276,18 +286,29 @@ class MainWindow(Gtk.Window):
     def test_selected_aps(self, widget):
         #print(self.selected_items)
         textbuffer = self.textview.get_buffer()
-        if len(self.selected_items) == 2:
+        dest = self.entry.get_text()
+        if len(self.selected_items) != 2:
+            textbuffer.insert(textbuffer.get_end_iter(), "You need to select 2 access points to be able to test.\n")
+        if dest == "":
+            textbuffer.insert(textbuffer.get_end_iter(), "You need to specify a url or IP to test aginst.\n")
+        if len(self.selected_items) == 2 and dest != "":
             print_items = self.selected_items
             ap1 = print_items.pop(0)
             ap2 = print_items.pop(0)
-            #print(print_items.pop(0))
-            #print(print_items.pop(0))
-            textbuffer.insert(textbuffer.get_end_iter(), "Test on "+ ap1 + " and " + ap2 + ".\n")
+            self.selected_items.append(ap1) # Put them back in the selected_items list so you can press "Test" again.
+            self.selected_items.append(ap2)
+            for ap in self.found_access_points:
+                if ap['essid'] == ap1:
+                    ap1 = ap
+                if ap['essid'] == ap2:
+                    ap2 = ap
+            textbuffer.insert(textbuffer.get_end_iter(), "Test on: "+ ap1['essid'] + " and " + ap2['essid'] + ". Against: "+ dest+".\n")
             if self.os == "linux":
                 from wifi_scan_linux import wifi_scan_linux
-                result = wifi_scan_linux.test_ap_linux(self.selected_interface, ap1, ap2)
+                result = wifi_scan_linux.test_ap_linux(self.selected_interface, ap1, ap2, dest)
 
             textbuffer.insert(textbuffer.get_end_iter(), result +"\n")
+
         
 
 win = MainWindow()
