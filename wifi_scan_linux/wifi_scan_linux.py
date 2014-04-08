@@ -1,5 +1,6 @@
 import socket
 import os
+import ipaddress
 from time import sleep
 from wifi_scan_linux.ifiw import ifiw
 
@@ -19,60 +20,78 @@ def traceroute(dest, interface, hops=30):
     dest_addr = ""
     tries = 1
     while dest_addr == "":
-        print("Try number: "+ str(tries))
-        try:
-            dest_addr = socket.gethostbyname(dest)
-        except socket.error as e:
-            print("Failed to get address")
-            os.popen("dhcpcd -n %s" % interface)
-        tries += 1
-        sleep(10)
-
-    print(dest_addr + " <-- Finally found it!")
-
-        
-    icmp = socket.getprotobyname('icmp')
-    udp = socket.getprotobyname('udp')
-    ttl = 1
-    port = 33434
-    max_hops = hops
-    data = ""
-    data = data.encode('utf-8')
-    route = {}
-    while True:
-        recv_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
-        send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, udp)
-        send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
-
-        recv_socket.bind(("", port))
-        send_socket.sendto(data, (dest, port))
-
-        curr_addr = None
-        curr_name = None
-        try:
-            _, curr_addr = recv_socket.recvfrom(1024)
-            curr_addr = curr_addr[0]
-            try:
-                curr_name = socket.gethostbyaddr(curr_addr)[0]
-            except socket.error:
-                curr_name = curr_addr
-        except socket.error:
-            pass
-        finally:
-            recv_socket.close()
-            send_socket.close()
-
-        if curr_addr is not None:
-            curr_host = "%s (%s)" % (curr_name, curr_addr)
+        if tries == 6:
+            dest_addr = "Not found"
+            print("Destination not found")
         else:
-            curr_host = "*"
-        route[ttl] = curr_host
+            print("Try number: "+ str(tries))
+            try:
+                dest_addr = socket.gethostbyname(dest)
+            except socket.error as e:
+                print("Failed to get address")
+                os.popen("dhcpcd -nK %s" % interface)
+            tries += 1
+            sleep(5)
+
+    fail = {}
+    fail[1] = "Not found"
+    if dest_addr != "Not found":
+        print(dest_addr + " <-- Finally found it!")
+
+            
+        icmp = socket.getprotobyname('icmp')
+        udp = socket.getprotobyname('udp')
+        ttl = 1
+        port = 33434
+        max_hops = hops
+        data = ""
+        data = data.encode('utf-8')
+        route = {}
+        while True:
+            print("     TTL: " + str(ttl)) 
+            recv_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
+            send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, udp)
+            send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+
+            recv_socket.bind(("", port))
+            try:
+                send_socket.sendto(data, (dest, port))
+
+                curr_addr = None
+                curr_name = None
+                try:
+                    _, curr_addr = recv_socket.recvfrom(1024)
+                    curr_addr = curr_addr[0]
+                    try:
+                        curr_name = socket.gethostbyaddr(curr_addr)[0]
+                    except socket.error:
+                        curr_name = curr_addr
+                except socket.error as e:
+                    print(e)
+                    pass
+                finally:
+                    recv_socket.close()
+                    send_socket.close()
+
+                if curr_addr is not None:
+                    curr_host = "%s (%s)" % (curr_name, curr_addr)
+                else:
+                    curr_host = "*"
+                route[ttl] = curr_host
 
 
-        ttl += 1
+                ttl += 1
 
-        if curr_addr == dest_addr or ttl > max_hops:
-            return route
+                if curr_addr == dest_addr or ttl > max_hops:
+                    return route
+            except OSError as e:
+                fail[2] = e
+                #fail[2] = "Network Unreachable"
+
+    else:
+        fail[2] = "Could not find address"
+        return fail
+
 
 def test_ap_linux(interface, ap1, ap2, dest):
     ''' Returns "Safe", "Unsafe", or "Possibly unsafe". Could also return IMPOSSIBURU, but should not happen '''
@@ -107,7 +126,7 @@ def test_ap_linux(interface, ap1, ap2, dest):
     # Connect and traceroute AP1
     conap1 = False
     while not conap1: # Since we want to be sure we are connected before we proceed, use a while loop to make sure we connect.
-        ap1results = ifiw.ifiw.connect_essid(interface, ap1['essid'], "dhcpcd", True) # Using dhcpcd right now, cause that's what I use for dhcp
+        ap1results = ifiw.ifiw.connect_essid(interface, ap1['essid'], ap1['bssid'], ap1['channel'], "dhcpcd", True) # Using dhcpcd right now, cause that's what I use for dhcp
         conap1 = ap1results[0]
         print("Ap1 " + ap1['essid'] + " connected: "+ str(conap1))
         sleep(4)
@@ -127,7 +146,7 @@ def test_ap_linux(interface, ap1, ap2, dest):
     # Connect and traceroute AP2
     conap2 = False
     while not conap2:
-        ap2results = ifiw.ifiw.connect_essid(interface, ap2['essid'], "dhcpcd", True)
+        ap2results = ifiw.ifiw.connect_essid(interface, ap2['essid'], ap2['bssid'], ap2['channel'], "dhcpcd", True)
         conap2 = ap2results[0]
         print("Ap2 " + ap2['essid'] + " connected: "+ str(conap2))
         sleep(4)
@@ -138,6 +157,14 @@ def test_ap_linux(interface, ap1, ap2, dest):
         print("traceroute AP2" + str(ap2['essid']) )
         ap2trace = traceroute(dest, interface)
         print(str(ap1trace)+ "<-- conap2")
+
+    if ap1trace[1] == "Not found":
+        ret = ap1['essid'] + " could not be tracerouted. Reason: " + ap1trace[2]
+        return ret
+
+    if ap2trace[1] == "Not found":
+        ret = ap2['essid'] + " could not be tracerouted. Reason: " + ap2trace[2]
+        return ret
 
 
 
@@ -152,8 +179,12 @@ def test_ap_linux(interface, ap1, ap2, dest):
                 return "Possibly unsafe"
         else:
             print("Access points don't share the same IP, check netID")
-            # This actually only checks the netmask for now. But w/e.
-            if ap1results[1] == ap2results[1]:
+            # Calculate the net ID
+            ap1str = str(ap1trace[1]) + "/" + str(ap1results[1])
+            ap1netID = ipaddress.IPv4Network(ap1str, False).network_address
+            ap2str = str(ap2trace[1]) + "/" + str(ap2results[1])
+            ap2netID = ipaddress.IPv4Network(ap2str, False).network_address
+            if ap1netID == ap2netID:
                 print("Access points share the same netID (actually checking the netmask right now)")
                 return "Safe"
             else:
@@ -174,9 +205,17 @@ def test_ap_linux(interface, ap1, ap2, dest):
                 else:
                     print("Should never get this..")
                     return "Yeah, everything went bad..."
+    #if ap1['essid'] == ap2['essid'] and ap1['bssid'] == ap2['bssid']:
+    elif ap1['essid'] == ap2['essid'] and ap1['bssid'] != ap2['bssid']:
+        print("APs do not share BSSID.")
+        return "APs share ESSID, but not BSSID"
+
+    elif ap1['essid'] != ap2['essid'] and ap1['bssid'] == ap2['bssid']:
+        print("APs do not share ESSID.")
+        return "APs share BSSID, but not ESSID"
     else:
-        print("APs do not share ESSID and BSSID.")
-        return "APs are not imitating one another (different ESSID and/or BSSID)"
+        print("The APs are different networks")
+        return "The APs don't share ESSID or BSSID. They are not imitating one another."
 
 
 

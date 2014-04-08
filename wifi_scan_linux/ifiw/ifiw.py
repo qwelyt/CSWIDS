@@ -163,7 +163,7 @@ class ifiw():
 
     # dhcpcd is giving some seriouse problems with the connecting, makitg the whole program fail.
     # Not sure have to solve it all... Sometimes it works, sometimes not. It's like russian roulette.
-    def connect_essid(interface, essid, dhcp, restart=False, kill=False):
+    def connect_essid(interface, essid, bssid, channel, dhcp, restart=False, kill=False):
         ''' Connects to a network
             interface -- The interface to use
             essid -- The network
@@ -200,7 +200,7 @@ class ifiw():
 
 
 
-        net = 'iwconfig ' + interface + ' essid "' + essid +'"'
+        net = 'iwconfig ' + interface + ' essid "' + essid +'" channel ' + channel + ' ap ' + bssid
         #print(net)
         os.popen(net)
         os.popen(dhcp_cmd)
