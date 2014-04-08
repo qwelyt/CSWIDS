@@ -131,6 +131,7 @@ def test_ap_linux(interface, ap1, ap2, dest):
         conap2 = ap2results[0]
         print("Ap2 " + ap2['essid'] + " connected: "+ str(conap2))
         sleep(4)
+    print(ap2results)
 
     ap2trace = None
     if conap2:
@@ -142,7 +143,6 @@ def test_ap_linux(interface, ap1, ap2, dest):
 
     # Can't really do the tests  properly..
     if ap1['essid'] == ap2['essid'] and ap1['bssid'] == ap2['bssid']:
-#    if True:
         print('The bssid and essid are the same, continue testing')
         if ap1trace[1] == ap2trace[1]:
             print("Access points IPs are the same, check all results of traceroute")
@@ -174,13 +174,14 @@ def test_ap_linux(interface, ap1, ap2, dest):
                 else:
                     print("Should never get this..")
                     return "Yeah, everything went bad..."
+    else:
+        print("APs do not share ESSID and BSSID.")
+        return "APs are not imitating one another (different ESSID and/or BSSID)"
 
 
 
 
-
-
-
+'''
     if ap1['essid'] == ap2['essid']:
         print("Same essid")
     else:
@@ -196,3 +197,4 @@ def test_ap_linux(interface, ap1, ap2, dest):
     else:
         print("IPs not  the same")
 
+'''
