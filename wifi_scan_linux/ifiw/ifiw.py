@@ -202,8 +202,12 @@ class ifiw():
 
         net = 'iwconfig ' + interface + ' essid "' + essid +'" channel ' + channel + ' ap ' + bssid
         #print(net)
-        os.popen(net)
-        os.popen(dhcp_cmd)
+        i = 0
+        while i<2:
+            os.popen(net)
+            os.popen(dhcp_cmd)
+            i += 1
+            sleep(10)
 
         inet = ""
         netmask = ""

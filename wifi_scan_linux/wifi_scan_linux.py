@@ -29,9 +29,9 @@ def traceroute(dest, interface, hops=30):
                 dest_addr = socket.gethostbyname(dest)
             except socket.error as e:
                 print("Failed to get address")
-                os.popen("dhcpcd -nK %s" % interface)
+                #os.popen("dhcpcd -nK %s" % interface)
             tries += 1
-            sleep(5)
+            sleep(10)
 
     fail = {}
     fail[1] = "Not found"
@@ -48,7 +48,7 @@ def traceroute(dest, interface, hops=30):
         data = data.encode('utf-8')
         route = {}
         while True:
-            print("     TTL: " + str(ttl)) 
+            #print("     TTL: " + str(ttl)) 
             recv_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
             send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, udp)
             send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
@@ -74,7 +74,8 @@ def traceroute(dest, interface, hops=30):
                     send_socket.close()
 
                 if curr_addr is not None:
-                    curr_host = "%s (%s)" % (curr_name, curr_addr)
+                    #curr_host = "%s (%s)" % (curr_name, curr_addr)
+                    curr_host = "%s" % curr_addr
                 else:
                     curr_host = "*"
                 route[ttl] = curr_host
@@ -169,8 +170,10 @@ def test_ap_linux(interface, ap1, ap2, dest):
 
 
     # Can't really do the tests  properly..
-    if ap1['essid'] == ap2['essid'] and ap1['bssid'] == ap2['bssid']:
+    if (ap1['essid'] == ap2['essid']) and (ap1['bssid'] == ap2['bssid']):
         print('The bssid and essid are the same, continue testing')
+        print(ap1['essid'] + " - essids - " + ap2['essid'])
+        print(ap1['bssid'] + " - bssids - " + ap2['bssid'])
         if ap1trace[1] == ap2trace[1]:
             print("Access points IPs are the same, check all results of traceroute")
             if ap1trace == ap2trace:
@@ -185,7 +188,7 @@ def test_ap_linux(interface, ap1, ap2, dest):
             ap2str = str(ap2trace[1]) + "/" + str(ap2results[1])
             ap2netID = ipaddress.IPv4Network(ap2str, False).network_address
             if ap1netID == ap2netID:
-                print("Access points share the same netID (actually checking the netmask right now)")
+                print("Access points share the same netID.")
                 return "Safe"
             else:
                 if ap1trace == ap2trace:
@@ -206,15 +209,16 @@ def test_ap_linux(interface, ap1, ap2, dest):
                     print("Should never get this..")
                     return "Yeah, everything went bad..."
     #if ap1['essid'] == ap2['essid'] and ap1['bssid'] == ap2['bssid']:
-    elif ap1['essid'] == ap2['essid'] and ap1['bssid'] != ap2['bssid']:
+    elif (ap1['essid'] == ap2['essid']) and (ap1['bssid'] != ap2['bssid']):
         print("APs do not share BSSID.")
         return "APs share ESSID, but not BSSID"
 
-    elif ap1['essid'] != ap2['essid'] and ap1['bssid'] == ap2['bssid']:
+    elif (ap1['essid'] != ap2['essid']) and (ap1['bssid'] == ap2['bssid']):
         print("APs do not share ESSID.")
         return "APs share BSSID, but not ESSID"
     else:
         print("The APs are different networks")
+        print(ap1['essid'] + " : " + ap1['bssid'] + "   ---   " + ap2['essid'] + " : " + ap2['bssid'])
         return "The APs don't share ESSID or BSSID. They are not imitating one another."
 
 
