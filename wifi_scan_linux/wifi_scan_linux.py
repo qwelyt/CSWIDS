@@ -95,7 +95,7 @@ def traceroute(dest, interface, hops=30):
 
 
 def test_ap_linux(interface, ap1, ap2, dest):
-    ''' Returns "Safe", "Unsafe", or "Possibly unsafe". Could also return IMPOSSIBURU, but should not happen '''
+    ''' Returns a string saying if a network is safe or not.'''
     # Should perform the tests needed.
     # 1. Connect to ap and check it's ip, essid, bssid.
     # 2. Compare to other aps results.
@@ -140,9 +140,9 @@ def test_ap_linux(interface, ap1, ap2, dest):
         ap1trace = traceroute(dest, interface)
         print(str(ap1trace)+ "<-- conap1")
 
-    print("Wait for 10 seconds before we connect to the next AP")
+    #print("Wait for 10 seconds before we connect to the next AP")
     #sleep(10)
-    print("Sleep is over! Get to work!")
+    #print("Sleep is over! Get to work!")
 
     # Connect and traceroute AP2
     conap2 = False
@@ -169,17 +169,19 @@ def test_ap_linux(interface, ap1, ap2, dest):
 
 
 
-    # Can't really do the tests  properly..
+    # The original algorithm requires the ESSID and the BSSID to be the same. This is impossible as those would register as the same AP.
+    # Soluting: Only require ESSID to match. Same ESSID == Should be the same network.
+    '''
     if (ap1['essid'] == ap2['essid']) and (ap1['bssid'] == ap2['bssid']):
-        print('The bssid and essid are the same, continue testing')
+        print('The essid are the same, continue testing')
         print(ap1['essid'] + " - essids - " + ap2['essid'])
         print(ap1['bssid'] + " - bssids - " + ap2['bssid'])
         if ap1trace[1] == ap2trace[1]:
             print("Access points IPs are the same, check all results of traceroute")
             if ap1trace == ap2trace:
-                return "IMPOSSIBURU!"
-            else:
                 return "Possibly unsafe"
+            else:
+                return "Unsafe"
         else:
             print("Access points don't share the same IP, check netID")
             # Calculate the net ID
@@ -220,6 +222,42 @@ def test_ap_linux(interface, ap1, ap2, dest):
         print("The APs are different networks")
         print(ap1['essid'] + " : " + ap1['bssid'] + "   ---   " + ap2['essid'] + " : " + ap2['bssid'])
         return "The APs don't share ESSID or BSSID. They are not imitating one another."
+    '''
+
+    # Implementation of the modified algorithm.
+    if ap1['essid'] == ap2['essid']:
+        # Check IPs of gateways.
+        if ap1trace[1] == ap2trace[1]:
+            if ap1trace == ap2trace:
+                return "Possibly unsafe"
+            else:
+                return "Unsafe network"
+        # If they differ, go on and check the netID
+        else:
+            # Calculate the net ID
+            ap1str = str(ap1trace[1]) + "/" + str(ap1results[1])
+            ap1netID = ipaddress.IPv4Network(ap1str, False).network_address
+            ap2str = str(ap2trace[1]) + "/" + str(ap2results[1])
+            ap2netID = ipaddress.IPv4Network(ap2str, False).network_address
+            if ap1netID == ap2netID:
+                return "Safe"
+            else:
+                if ap1trace == ap2trace:
+                    return "Unsafe network"
+                elif len(ap1trace) == len(ap2trace):
+                    return "Unsafe network"
+                elif len(ap1trace) > len(ap2trace):
+                    ret = ap1['essid'] + " is a possible rouge AP"
+                    return ret
+                elif len(ap1trace) < len(ap2trace):
+                    ret = ap2['essid'] + " is a possible rouge AP"
+                    return ret
+                else:
+                    return "The traceroute comparison failed."
+    else:
+        return "The selected APs do not share the ESSID. They are probably different networks."
+
+
 
 
 
